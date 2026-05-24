@@ -1,0 +1,15 @@
+[Unit]
+Description=PSA Queue Flask app
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/psa-queue
+EnvironmentFile=/var/www/psa-queue/.env
+ExecStart=/var/www/psa-queue/.venv/bin/gunicorn -c gunicorn.conf.py wsgi:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

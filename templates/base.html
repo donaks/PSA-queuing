@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}PSA Queue{% endblock %}</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --text: #132033;
+      --muted: #657184;
+      --line: #d9e1ec;
+      --blue: #165dba;
+      --green: #087f5b;
+      --red: #c92a2a;
+      --gold: #a16207;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 3vw, 2.5rem);
+      line-height: 1.1;
+    }
+
+    h2 {
+      font-size: 1rem;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .queue-card {
+      display: grid;
+      gap: 14px;
+      min-height: 220px;
+    }
+
+    .queue-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 9px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .numbers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .number-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .value {
+      margin-top: 6px;
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button,
+    input {
+      min-height: 42px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+      padding: 0 14px;
+      font-weight: 700;
+    }
+
+    button.secondary {
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    button.danger {
+      background: var(--red);
+      border-color: var(--red);
+    }
+
+    input {
+      width: 96px;
+      padding: 0 10px;
+      background: white;
+      color: var(--text);
+    }
+
+    .notice {
+      margin: 12px 0 0;
+      color: var(--gold);
+      min-height: 1.25rem;
+    }
+
+    .display-grid {
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+    }
+
+    .display-card {
+      min-height: 260px;
+      display: grid;
+      align-content: center;
+      text-align: center;
+      gap: 20px;
+    }
+
+    .display-card .value {
+      font-size: clamp(4rem, 12vw, 9rem);
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .link-button {
+      display: inline-grid;
+      place-items: center;
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .display-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% block body %}{% endblock %}
+</body>
+</html>

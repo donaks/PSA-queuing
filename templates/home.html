@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}PSA Queue{% endblock %}
+{% block body %}
+  <main class="shell">
+    <div class="topbar">
+      <div>
+        <h1>PSA Queue</h1>
+        <p class="muted">Queue controller and public display.</p>
+      </div>
+    </div>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Controller</h2>
+        <p class="muted">Manage all queue counters from one screen.</p>
+        <div class="links">
+          <a class="link-button" href="/controller">Open controller</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Display</h2>
+        <p class="muted">Show current serving and called numbers publicly.</p>
+        <div class="links">
+          <a class="link-button" href="/display">Open display</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Window Controllers</h2>
+        <p class="muted">Open a focused controller for one service window.</p>
+        <div class="links">
+          <a class="link-button" href="/window/1">Window 1</a>
+          <a class="link-button" href="/window/2">Window 2</a>
+          <a class="link-button" href="/window/3">Window 3</a>
+          <a class="link-button" href="/window/4">Window 4</a>
+        </div>
+      </article>
+    </section>
+  </main>
+{% endblock %}

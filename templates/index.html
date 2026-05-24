@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}PSA Queue Controller{% endblock %}
+{% block body %}
+  <main class="shell">
+    <div class="topbar">
+      <div>
+        <h1>Queue Controller</h1>
+        <p class="muted">Use a controller token in the URL once, for example <strong>?token=...</strong>.</p>
+      </div>
+      <a class="link-button" href="/display">Display</a>
+    </div>
+
+    <section class="grid" id="queues"></section>
+    <p class="notice" id="notice"></p>
+  </main>
+
+  <script>
+    const queueLabels = {
+      "reg-pri": ["Registration", "Priority"],
+      "reg-reg": ["Registration", "Regular"],
+      "iss-pri": ["Issuance", "Priority"],
+      "iss-reg": ["Issuance", "Regular"]
+    };
+
+    const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
+    if (tokenFromUrl) {
+      localStorage.setItem("queue_admin_token", tokenFromUrl);
+      history.replaceState({}, "", window.location.pathname);
+    }
+
+    function adminHeaders() {
+      const token = localStorage.getItem("queue_admin_token") || "";
+      return token ? {"X-Admin-Token": token} : {};
+    }
+
+    function formatValue(value) {
+      return value === null || value === undefined ? "-" : value;
+    }
+
+    async function postJson(url, body) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", ...adminHeaders()},
+        body: body ? JSON.stringify(body) : null
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "Request failed");
+      }
+      return payload;
+    }
+
+    function render(state) {
+      const root = document.getElementById("queues");
+      root.innerHTML = "";
+
+      Object.entries(queueLabels).forEach(([queue, labels]) => {
+        const q = state[queue] || {};
+        const card = document.createElement("article");
+        card.className = "card queue-card";
+        card.innerHTML = `
+          <div class="queue-title">
+            <div>
+              <h2>${labels[0]}</h2>
+              <p class="muted">${labels[1]}</p>
+            </div>
+            <span class="badge">${queue}</span>
+          </div>
+          <div class="numbers">
+            <div class="number-box">
+              <div class="label">Serving</div>
+              <div class="value">${formatValue(q.serving)}</div>
+            </div>
+            <div class="number-box">
+              <div class="label">Called</div>
+              <div class="value">${formatValue(q.called)}</div>
+            </div>
+          </div>
+          <div class="actions">
+            <button data-action="next" data-queue="${queue}">Next</button>
+            <button class="danger" data-action="reset" data-queue="${queue}">Reset</button>
+            <input type="number" min="1" placeholder="Max" value="${q.max || ""}" data-max="${queue}">
+            <button class="secondary" data-action="max" data-queue="${queue}">Set max</button>
+          </div>
+        `;
+        root.appendChild(card);
+      });
+    }
+
+    async function refresh() {
+      const response = await fetch("/api/state", {cache: "no-store"});
+      render(await response.json());
+    }
+
+    document.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const queue = button.dataset.queue;
+      const action = button.dataset.action;
+      const notice = document.getElementById("notice");
+      notice.textContent = "";
+
+      try {
+        if (action === "next") {
+          await postJson(`/api/next/${queue}`);
+        } else if (action === "reset") {
+          await postJson(`/api/reset/${queue}`);
+        } else if (action === "max") {
+          const input = document.querySelector(`[data-max="${queue}"]`);
+          await postJson(`/api/max/${queue}`, {max: input.value});
+        }
+        await refresh();
+      } catch (error) {
+        notice.textContent = error.message;
+      }
+    });
+
+    refresh();
+    setInterval(refresh, 2500);
+  </script>
+{% endblock %}

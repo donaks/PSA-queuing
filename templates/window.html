@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Window {{ window_id }}{% endblock %}
+{% block body %}
+  <main class="shell">
+    <div class="topbar">
+      <div>
+        <h1>Window {{ window_id }}</h1>
+        <p class="muted">{{ config.title }} {{ config.type }}</p>
+      </div>
+      <a class="link-button" href="/controller">All queues</a>
+    </div>
+
+    <section class="grid">
+      <article class="card queue-card">
+        <div class="queue-title">
+          <div>
+            <h2>{{ config.title }}</h2>
+            <p class="muted">{{ config.type }}</p>
+          </div>
+          <span class="badge">{{ config.queue }}</span>
+        </div>
+        <div class="numbers">
+          <div class="number-box">
+            <div class="label">Serving</div>
+            <div class="value" id="serving">-</div>
+          </div>
+          <div class="number-box">
+            <div class="label">Called</div>
+            <div class="value" id="called">-</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="next">Next</button>
+          <button class="danger" id="reset">Reset</button>
+          <input id="max" type="number" min="1" placeholder="Max">
+          <button class="secondary" id="setMax">Set max</button>
+        </div>
+      </article>
+    </section>
+    <p class="notice" id="notice"></p>
+  </main>
+
+  <script>
+    const queue = "{{ config.queue }}";
+    const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
+    if (tokenFromUrl) {
+      localStorage.setItem("queue_admin_token", tokenFromUrl);
+      history.replaceState({}, "", window.location.pathname);
+    }
+
+    function adminHeaders() {
+      const token = localStorage.getItem("queue_admin_token") || "";
+      return token ? {"X-Admin-Token": token} : {};
+    }
+
+    function formatValue(value) {
+      return value === null || value === undefined ? "-" : value;
+    }
+
+    async function postJson(url, body) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", ...adminHeaders()},
+        body: body ? JSON.stringify(body) : null
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "Request failed");
+      }
+      return payload;
+    }
+
+    async function refresh() {
+      const response = await fetch("/api/state", {cache: "no-store"});
+      const q = (await response.json())[queue] || {};
+      document.getElementById("serving").textContent = formatValue(q.serving);
+      document.getElementById("called").textContent = formatValue(q.called);
+      document.getElementById("max").value = q.max || "";
+    }
+
+    async function run(action) {
+      const notice = document.getElementById("notice");
+      notice.textContent = "";
+      try {
+        if (action === "next") {
+          await postJson(`/api/next/${queue}`);
+        } else if (action === "reset") {
+          await postJson(`/api/reset/${queue}`);
+        } else {
+          await postJson(`/api/max/${queue}`, {max: document.getElementById("max").value});
+        }
+        await refresh();
+      } catch (error) {
+        notice.textContent = error.message;
+      }
+    }
+
+    document.getElementById("next").addEventListener("click", () => run("next"));
+    document.getElementById("reset").addEventListener("click", () => run("reset"));
+    document.getElementById("setMax").addEventListener("click", () => run("max"));
+
+    refresh();
+    setInterval(refresh, 2500);
+  </script>
+{% endblock %}

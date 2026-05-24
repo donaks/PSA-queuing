@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}PSA Queue Display{% endblock %}
+{% block body %}
+  <main class="shell">
+    <div class="topbar">
+      <div>
+        <h1>Now Serving</h1>
+        <p class="muted" id="announcement">Waiting for queue updates.</p>
+      </div>
+    </div>
+
+    <section class="grid display-grid" id="display"></section>
+  </main>
+
+  <script>
+    const queueLabels = {
+      "reg-pri": ["Registration", "Priority"],
+      "reg-reg": ["Registration", "Regular"],
+      "iss-pri": ["Issuance", "Priority"],
+      "iss-reg": ["Issuance", "Regular"]
+    };
+
+    let latestAnnouncementId = 0;
+
+    function formatValue(value) {
+      return value === null || value === undefined ? "-" : value;
+    }
+
+    function render(state) {
+      const root = document.getElementById("display");
+      root.innerHTML = "";
+
+      Object.entries(queueLabels).forEach(([queue, labels]) => {
+        const q = state[queue] || {};
+        const card = document.createElement("article");
+        card.className = "card display-card";
+        card.innerHTML = `
+          <div>
+            <h2>${labels[0]}</h2>
+            <p class="muted">${labels[1]}</p>
+          </div>
+          <div>
+            <div class="label">Serving</div>
+            <div class="value">${formatValue(q.serving)}</div>
+          </div>
+          <div>
+            <span class="badge">Called: ${formatValue(q.called)}</span>
+          </div>
+        `;
+        root.appendChild(card);
+      });
+    }
+
+    async function refreshState() {
+      const response = await fetch("/api/state", {cache: "no-store"});
+      render(await response.json());
+    }
+
+    async function refreshAnnouncements() {
+      const response = await fetch(`/api/announcements?since=${latestAnnouncementId}`, {cache: "no-store"});
+      const payload = await response.json();
+      latestAnnouncementId = payload.latest_id || latestAnnouncementId;
+      if (payload.events && payload.events.length) {
+        document.getElementById("announcement").textContent = payload.events[payload.events.length - 1].message;
+      }
+    }
+
+    refreshState();
+    refreshAnnouncements();
+    setInterval(refreshState, 1500);
+    setInterval(refreshAnnouncements, 1500);
+  </script>
+{% endblock %}
