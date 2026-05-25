@@ -298,6 +298,10 @@
       color: var(--text);
     }
 
+    input.token-input {
+      width: min(260px, 100%);
+    }
+
     .notice {
       margin: 14px 0 0;
       color: #7c4a03;
@@ -380,6 +384,18 @@
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+    }
+
+    .token-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
     }
 
     @media (max-width: 720px) {

@@ -28,6 +28,13 @@
         </div>
       </div>
 
+      <div class="token-panel">
+        <span class="label">Controller token</span>
+        <input class="token-input" id="tokenInput" type="password" placeholder="Paste controller token" autocomplete="off">
+        <button class="secondary" id="saveToken" type="button">Save token</button>
+        <button class="secondary" id="clearToken" type="button">Clear</button>
+      </div>
+
       <div class="summary-grid" id="summary"></div>
       <section class="grid" id="queues"></section>
     </section>
@@ -48,8 +55,13 @@
       history.replaceState({}, "", window.location.pathname);
     }
 
-    document.getElementById("tokenStatus").textContent =
-      localStorage.getItem("queue_admin_token") ? "Controller token saved" : "LAN or token access";
+    function updateTokenStatus() {
+      const hasToken = Boolean(localStorage.getItem("queue_admin_token"));
+      document.getElementById("tokenStatus").textContent = hasToken ? "Controller token saved" : "LAN or token access";
+      document.getElementById("tokenInput").value = "";
+    }
+
+    updateTokenStatus();
 
     function adminHeaders() {
       const token = localStorage.getItem("queue_admin_token") || "";
@@ -100,6 +112,9 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("Controller access denied. Save the controller token, then try again.");
+        }
         throw new Error(payload.error || "Request failed");
       }
       return payload;
@@ -175,6 +190,24 @@
       } catch (error) {
         notice.textContent = error.message;
       }
+    });
+
+    document.getElementById("saveToken").addEventListener("click", () => {
+      const token = document.getElementById("tokenInput").value.trim();
+      const notice = document.getElementById("notice");
+      if (!token) {
+        notice.textContent = "Paste the controller token first.";
+        return;
+      }
+      localStorage.setItem("queue_admin_token", token);
+      updateTokenStatus();
+      notice.textContent = "Controller token saved. You can now use Next, Reset, and Set max.";
+    });
+
+    document.getElementById("clearToken").addEventListener("click", () => {
+      localStorage.removeItem("queue_admin_token");
+      updateTokenStatus();
+      document.getElementById("notice").textContent = "Controller token cleared.";
     });
 
     refresh();
