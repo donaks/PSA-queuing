@@ -191,6 +191,34 @@
       grid-template-columns: repeat(2, minmax(260px, 1fr));
     }
 
+    .display-shell {
+      width: 100%;
+      min-height: 100vh;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+    }
+
+    .display-shell .topbar {
+      margin-bottom: 0;
+    }
+
+    .display-shell h1 {
+      font-size: clamp(2.4rem, 4vw, 4.8rem);
+    }
+
+    .display-shell .muted {
+      font-size: clamp(1rem, 1.6vw, 1.8rem);
+    }
+
+    .display-shell .display-grid {
+      min-height: 0;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
     .display-card {
       min-height: 260px;
       display: grid;
@@ -198,6 +226,23 @@
       text-align: center;
       gap: 20px;
       border-top-width: 10px;
+    }
+
+    .display-shell .display-card {
+      min-height: 0;
+      height: 100%;
+      padding: clamp(18px, 2vw, 34px);
+      gap: clamp(14px, 2vh, 30px);
+      border-top-width: 16px;
+    }
+
+    .display-shell .display-card h2 {
+      font-size: clamp(1.8rem, 3vw, 4rem);
+      line-height: 1;
+    }
+
+    .display-shell .display-card .label {
+      font-size: clamp(0.95rem, 1.4vw, 1.8rem);
     }
 
     .display-card.reg-pri {
@@ -218,6 +263,15 @@
 
     .display-card .value {
       font-size: clamp(4rem, 12vw, 9rem);
+    }
+
+    .display-shell .display-card .value {
+      font-size: clamp(6rem, 15vw, 18rem);
+    }
+
+    .display-shell .display-card .badge {
+      font-size: clamp(1rem, 1.8vw, 2.1rem);
+      padding: 8px 14px;
     }
 
     .links,
@@ -336,6 +390,16 @@
 
       .display-grid {
         grid-template-columns: 1fr;
+      }
+
+      .display-shell {
+        min-height: 100vh;
+        padding: 12px;
+      }
+
+      .display-shell .display-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(4, minmax(220px, 1fr));
       }
     }
   </style>
