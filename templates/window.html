@@ -5,39 +5,30 @@
     <div class="topbar">
       <div>
         <h1>Window {{ window_id }}</h1>
-        <p class="muted">{{ config.title }} {{ config.type }}</p>
+        <p class="muted">{{ config.title }} {{ config.type }} · Branch: {{ branch }} · <span id="lastUpdated">Updating...</span></p>
       </div>
       <div class="subtle-actions">
-        <a class="link-button" href="/branch/{{ branch }}/display">Branch display</a>
+        <a class="link-button" href="/branch/{{ branch }}/display">Display</a>
         <a class="link-button" href="/audit">Audit logs</a>
         <a class="link-button primary" href="/controller">All queues</a>
       </div>
     </div>
 
-    <section class="surface">
-      <div class="toolbar">
-        <div class="status-row">
-          <span class="status-pill"><span class="status-dot"></span> Window {{ window_id }} controller</span>
-          <span class="status-pill">Branch: {{ branch }}</span>
-          <span class="status-pill">User: {{ username }}</span>
-          <span class="status-pill" id="lastUpdated">Updating...</span>
-        </div>
-      </div>
-
-      <article class="card queue-card {% if config.type == 'PRIORITY' %}priority{% else %}regular{% endif %}" id="queueCard">
+    <section class="grid">
+      <article class="card queue-card">
         <div class="queue-title">
           <div>
             <h2>{{ config.title }}</h2>
             <p class="muted">{{ config.type }}</p>
           </div>
-          <span class="badge {% if config.type == 'PRIORITY' %}priority{% else %}regular{% endif %}" id="queueBadge">{{ config.queue }}</span>
+          <span class="badge" id="queueBadge">{{ config.queue }}</span>
         </div>
         <div class="numbers">
-          <div class="number-box primary">
+          <div class="number-box">
             <div class="label">Serving</div>
             <div class="value" id="serving">-</div>
           </div>
-          <div class="number-box waiting">
+          <div class="number-box">
             <div class="label">Called</div>
             <div class="value" id="called">-</div>
           </div>
@@ -46,7 +37,7 @@
           <button id="next">Next</button>
           <button class="danger" id="reset">Reset</button>
           <div class="max-row">
-            <input id="max" type="number" min="1" placeholder="Max queue number">
+            <input id="max" type="number" min="1" placeholder="Max">
             <button class="secondary" id="setMax">Set max</button>
           </div>
         </div>
@@ -59,10 +50,6 @@
     const queue = "{{ config.queue }}";
     const branch = "{{ branch }}";
 
-    function adminHeaders() {
-      return {};
-    }
-
     function formatValue(value) {
       return value === null || value === undefined ? "-" : value;
     }
@@ -74,7 +61,7 @@
     async function postJson(url, body) {
       const response = await fetch(url, {
         method: "POST",
-        headers: {"Content-Type": "application/json", ...adminHeaders()},
+        headers: {"Content-Type": "application/json"},
         body: body ? JSON.stringify(body) : null
       });
       const payload = await response.json().catch(() => ({}));
@@ -97,7 +84,6 @@
       if (document.activeElement !== maxInput) {
         maxInput.value = q.max || "";
       }
-      document.getElementById("queueCard").classList.toggle("cutoff", isCutOff(q.called));
       document.getElementById("queueBadge").textContent = isCutOff(q.called) ? "Cut off" : queue;
       document.getElementById("lastUpdated").textContent = `Updated ${new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"})}`;
     }

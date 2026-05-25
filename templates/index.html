@@ -5,35 +5,17 @@
     <div class="topbar">
       <div>
         <h1>Queue Controller</h1>
-        <p class="muted">Manage registration and issuance queues from one operator dashboard.</p>
+        <p class="muted">Branch: {{ branch }} · User: {{ username }} · <span id="lastUpdated">Updating...</span></p>
       </div>
       <div class="subtle-actions">
         <a class="link-button" href="/">Home</a>
-        <a class="link-button primary" href="/branch/{{ branch }}/display">Open branch display</a>
+        <a class="link-button" href="/audit">Audit logs</a>
+        <a class="link-button" href="/logout">Logout</a>
+        <a class="link-button primary" href="/branch/{{ branch }}/display">Open display</a>
       </div>
     </div>
 
-    <section class="surface">
-      <div class="toolbar">
-        <div class="status-row">
-          <span class="status-pill"><span class="status-dot"></span> Live controller</span>
-          <span class="status-pill">Branch: {{ branch }}</span>
-          <span class="status-pill">User: {{ username }}</span>
-          <span class="status-pill" id="lastUpdated">Updating...</span>
-        </div>
-        <div class="subtle-actions">
-          <a class="link-button" href="/window/1">Window 1</a>
-          <a class="link-button" href="/window/2">Window 2</a>
-          <a class="link-button" href="/window/3">Window 3</a>
-          <a class="link-button" href="/window/4">Window 4</a>
-          <a class="link-button" href="/audit">Audit logs</a>
-          <a class="link-button" href="/logout">Logout</a>
-        </div>
-      </div>
-
-      <div class="summary-grid" id="summary"></div>
-      <section class="grid" id="queues"></section>
-    </section>
+    <section class="grid" id="queues"></section>
     <p class="notice" id="notice"></p>
   </main>
 
@@ -47,50 +29,14 @@
 
     const branch = "{{ branch }}";
 
-    function adminHeaders() {
-      return {};
-    }
-
     function formatValue(value) {
       return value === null || value === undefined ? "-" : value;
-    }
-
-    function isCutOff(value) {
-      return String(value).toLowerCase() === "cut off";
-    }
-
-    function renderSummary(state) {
-      const queues = Object.values(state);
-      const totalServing = queues.reduce((total, q) => total + (Number(q.serving) || 0), 0);
-      const activeQueues = queues.filter((q) => !isCutOff(q.called)).length;
-      const cutOffQueues = queues.length - activeQueues;
-      const maxTotal = queues.reduce((total, q) => total + (Number(q.max) || 0), 0);
-      const root = document.getElementById("summary");
-
-      root.innerHTML = `
-        <div class="summary-item">
-          <div class="label">Active queues</div>
-          <div class="summary-value">${activeQueues}</div>
-        </div>
-        <div class="summary-item">
-          <div class="label">Cut off</div>
-          <div class="summary-value">${cutOffQueues}</div>
-        </div>
-        <div class="summary-item">
-          <div class="label">Serving total</div>
-          <div class="summary-value">${totalServing}</div>
-        </div>
-        <div class="summary-item">
-          <div class="label">Max slots</div>
-          <div class="summary-value">${maxTotal || "-"}</div>
-        </div>
-      `;
     }
 
     async function postJson(url, body) {
       const response = await fetch(url, {
         method: "POST",
-        headers: {"Content-Type": "application/json", ...adminHeaders()},
+        headers: {"Content-Type": "application/json"},
         body: body ? JSON.stringify(body) : null
       });
       const payload = await response.json().catch(() => ({}));
@@ -112,29 +58,26 @@
       const activeMaxQueue = activeMaxInput ? activeMaxInput.dataset.max : "";
       const activeMaxValue = activeMaxInput ? activeMaxInput.value : "";
       root.innerHTML = "";
-      renderSummary(state);
 
       Object.entries(queueLabels).forEach(([queue, labels]) => {
         const q = state[queue] || {};
-        const priority = labels[1].toLowerCase() === "priority";
-        const cutOff = isCutOff(q.called);
         const maxValue = activeMaxQueue === queue ? activeMaxValue : (q.max || "");
         const card = document.createElement("article");
-        card.className = `card queue-card ${priority ? "priority" : "regular"} ${cutOff ? "cutoff" : ""}`;
+        card.className = "card queue-card";
         card.innerHTML = `
           <div class="queue-title">
             <div>
               <h2>${labels[0]}</h2>
               <p class="muted">${labels[1]}</p>
             </div>
-            <span class="badge ${priority ? "priority" : "regular"}">${cutOff ? "Cut off" : queue}</span>
+            <span class="badge">${queue}</span>
           </div>
           <div class="numbers">
-            <div class="number-box primary">
+            <div class="number-box">
               <div class="label">Serving</div>
               <div class="value">${formatValue(q.serving)}</div>
             </div>
-            <div class="number-box waiting">
+            <div class="number-box">
               <div class="label">Called</div>
               <div class="value">${formatValue(q.called)}</div>
             </div>
@@ -143,7 +86,7 @@
             <button data-action="next" data-queue="${queue}">Next</button>
             <button class="danger" data-action="reset" data-queue="${queue}">Reset</button>
             <div class="max-row">
-              <input type="number" min="1" placeholder="Max queue number" value="${maxValue}" data-max="${queue}" aria-label="Maximum queue number for ${labels[0]} ${labels[1]}">
+              <input type="number" min="1" placeholder="Max" value="${maxValue}" data-max="${queue}" aria-label="Maximum queue number for ${labels[0]} ${labels[1]}">
               <button class="secondary" data-action="max" data-queue="${queue}">Set max</button>
             </div>
           </div>
