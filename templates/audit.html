@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs{% endblock %}
+{% block body %}
+  <main class="shell">
+    <div class="topbar">
+      <div>
+        <h1>Audit Logs</h1>
+        <p class="muted">
+          {% if is_super_admin %}
+            Showing recent activity for all branches.
+          {% else %}
+            Showing recent activity for branch {{ branch }}.
+          {% endif %}
+        </p>
+      </div>
+      <div class="subtle-actions">
+        <a class="link-button primary" href="/controller">Controller</a>
+        <a class="link-button" href="/logout">Logout</a>
+      </div>
+    </div>
+
+    <section class="surface">
+      <div class="toolbar">
+        <div class="status-row">
+          <span class="status-pill"><span class="status-dot"></span> Audit trail</span>
+          <span class="status-pill">User: {{ username }}</span>
+          <span class="status-pill">Branch: {{ branch }}</span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Event</th>
+              <th>User</th>
+              <th>Branch</th>
+              <th>IP address</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+              <tr>
+                <td data-time="{{ log.created_at }}"></td>
+                <td>{{ log.event }}</td>
+                <td>{{ log.username or "-" }}</td>
+                <td>{{ log.branch or "-" }}</td>
+                <td>{{ log.ip_address or "-" }}</td>
+                <td><code>{{ log.details or "{}" }}</code></td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6">No audit activity yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll("[data-time]").forEach((cell) => {
+      const seconds = Number(cell.dataset.time || 0);
+      cell.textContent = seconds
+        ? new Date(seconds * 1000).toLocaleString()
+        : "-";
+    });
+  </script>
+{% endblock %}

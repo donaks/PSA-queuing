@@ -25,7 +25,7 @@ Protected API:
 - `POST /api/reset/<queue>`
 - `POST /api/max/<queue>`
 
-Staff log in once at `/login`. Each login account belongs to one branch, so a branch admin can control only that branch's queues. Public display pages do not require login.
+Staff log in once at `/login`. Staff accounts are stored in SQLite, and each account belongs to one branch, so a branch admin can control only that branch's queues. Login, logout, and queue actions are written to audit logs.
 
 ## Local Development
 
@@ -68,17 +68,30 @@ Set strong values in `.env`:
 ```env
 FLASK_SECRET_KEY=use-a-long-random-secret
 DEFAULT_BRANCH=main
-QUEUE_ADMIN_USERS=main:main_admin:change-this-password;branch2:branch2_admin:change-this-too
+QUEUE_DB_PATH=instance/psa_queue.db
+QUEUE_ADMIN_USERS=
 QUEUE_ADMIN_TOKEN=
 TRUST_PROXY=true
 GUNICORN_BIND=127.0.0.1:8000
 ```
 
-`QUEUE_ADMIN_USERS` format:
+Create staff users:
 
-```text
-branch:username:password;another-branch:another-user:another-password
+```bash
+. .venv/bin/activate
+python scripts/manage_users.py create main_admin --branch main
+python scripts/manage_users.py create branch2_admin --branch branch2
 ```
+
+The command asks for the password without showing it on screen.
+
+Optional one-time seed for a new empty database:
+
+```env
+QUEUE_ADMIN_USERS=main:main_admin:change-this-password;branch2:branch2_admin:change-this-too
+```
+
+After the users table has at least one account, this seed is ignored.
 
 Install the service:
 
@@ -113,6 +126,14 @@ For regular staff:
 2. Enter branch username and password
 3. Use **Next**, **Reset**, and **Set max**
 
+Audit logs:
+
+```text
+https://your-domain.com/audit
+```
+
+Branch admins see their branch activity. Users created with `--role super_admin` can see all branch activity.
+
 Display URL:
 
 ```text
@@ -135,5 +156,6 @@ docker run --env-file .env -p 8000:8000 psa-queue
 ## Notes
 
 - Queue and announcement data is stored in memory. Restarting the process resets the queue.
+- Staff users and audit logs are stored in SQLite at `QUEUE_DB_PATH`.
 - Do not expose Gunicorn directly to the internet. Put Nginx in front of it or use Docker behind a reverse proxy.
 - If `TRUST_PROXY=true`, only run the app behind a trusted reverse proxy that sets `X-Forwarded-For` and `X-Forwarded-Proto`.
