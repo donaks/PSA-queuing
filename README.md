@@ -22,7 +22,7 @@ Protected API:
 - `POST /api/reset/<queue>`
 - `POST /api/max/<queue>`
 
-Protected API requests are allowed from private/LAN IP addresses. For internet deployment, set `QUEUE_ADMIN_TOKEN` and send it in the `X-Admin-Token` header. The controller pages do this automatically when opened once with `?token=YOUR_TOKEN`.
+Protected API requests are allowed from private/LAN IP addresses. For internet deployment, set `QUEUE_ADMIN_TOKEN`. Treat this value as the staff access code for the controller page. Operators enter it once in the **Access code** field, or open the controller once with `?token=YOUR_TOKEN`.
 
 ## Local Development
 
@@ -95,6 +95,13 @@ Controller URL:
 ```text
 https://your-domain.com/controller?token=YOUR_QUEUE_ADMIN_TOKEN
 ```
+
+For regular staff, share this as:
+
+1. Open `https://your-domain.com/controller`
+2. Enter the staff access code
+3. Click **Unlock**
+4. Use **Next**, **Reset**, and **Set max**
 
 Display URL:
 
