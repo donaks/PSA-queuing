@@ -155,7 +155,6 @@ docker run --env-file .env -p 8000:8000 psa-queue
 
 ## Notes
 
-- Queue and announcement data is stored in memory. Restarting the process resets the queue.
-- Staff users and audit logs are stored in SQLite at `QUEUE_DB_PATH`.
+- Staff users, audit logs, live queue state, and announcements are stored in SQLite at `QUEUE_DB_PATH`.
 - Do not expose Gunicorn directly to the internet. Put Nginx in front of it or use Docker behind a reverse proxy.
 - If `TRUST_PROXY=true`, only run the app behind a trusted reverse proxy that sets `X-Forwarded-For` and `X-Forwarded-Proto`.

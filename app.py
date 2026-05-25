@@ -40,25 +40,12 @@ LAN_NETWORKS = tuple(
     )
 )
 
-branch_states = {}
-branch_announcements = {}
-branch_latest_announcement_ids = {}
-
 WINDOW_MAPPING = {
     1: {"queue": "reg-pri", "title": "REGISTRATION", "type": "PRIORITY"},
     2: {"queue": "reg-reg", "title": "REGISTRATION", "type": "REGULAR"},
     3: {"queue": "iss-pri", "title": "ISSUANCE", "type": "PRIORITY"},
     4: {"queue": "iss-reg", "title": "ISSUANCE", "type": "REGULAR"},
 }
-
-
-def make_queue_state():
-    return {
-        "reg-pri": {"called": 0, "serving": 0, "max": None},
-        "reg-reg": {"called": 0, "serving": 0, "max": None},
-        "iss-pri": {"called": 0, "serving": 0, "max": None},
-        "iss-reg": {"called": 0, "serving": 0, "max": None},
-    }
 
 
 def normalize_branch(branch):
@@ -69,16 +56,6 @@ def normalize_branch(branch):
             allowed.append(character)
 
     return "".join(allowed) or DEFAULT_BRANCH
-
-
-def get_branch_state(branch):
-    branch = normalize_branch(branch)
-    if branch not in branch_states:
-        branch_states[branch] = make_queue_state()
-        branch_announcements[branch] = []
-        branch_latest_announcement_ids[branch] = 0
-
-    return branch_states[branch]
 
 
 def get_db():
@@ -115,8 +92,95 @@ def init_db():
                 created_at REAL NOT NULL
             )
         """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS queue_state (
+                branch TEXT NOT NULL,
+                queue TEXT NOT NULL,
+                called TEXT NOT NULL DEFAULT '0',
+                serving INTEGER NOT NULL DEFAULT 0,
+                max_value INTEGER,
+                updated_at REAL NOT NULL,
+                PRIMARY KEY (branch, queue)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS announcements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                branch TEXT NOT NULL,
+                queue TEXT NOT NULL,
+                message TEXT NOT NULL,
+                created_at REAL NOT NULL
+            )
+        """)
         db.execute("CREATE INDEX IF NOT EXISTS idx_audit_branch_time ON audit_logs(branch, created_at)")
         db.execute("CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit_logs(username, created_at)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_announcements_branch_id ON announcements(branch, id)")
+
+
+def decode_called(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return value
+
+
+def encode_called(value):
+    return str(value)
+
+
+def ensure_branch_state(db, branch):
+    branch = normalize_branch(branch)
+    now = time.time()
+    for queue in QUEUES:
+        db.execute(
+            """
+            INSERT OR IGNORE INTO queue_state (branch, queue, called, serving, max_value, updated_at)
+            VALUES (?, ?, '0', 0, NULL, ?)
+            """,
+            (branch, queue, now)
+        )
+
+
+def row_to_queue_state(row):
+    return {
+        "called": decode_called(row["called"]),
+        "serving": row["serving"],
+        "max": row["max_value"],
+    }
+
+
+def get_branch_state(branch):
+    branch = normalize_branch(branch)
+    with get_db() as db:
+        ensure_branch_state(db, branch)
+        rows = db.execute(
+            "SELECT queue, called, serving, max_value FROM queue_state WHERE branch = ?",
+            (branch,)
+        ).fetchall()
+
+    state = {row["queue"]: row_to_queue_state(row) for row in rows}
+    for queue in QUEUES:
+        state.setdefault(queue, {"called": 0, "serving": 0, "max": None})
+
+    return state
+
+
+def set_queue_state(db, branch, queue, q):
+    db.execute(
+        """
+        UPDATE queue_state
+        SET called = ?, serving = ?, max_value = ?, updated_at = ?
+        WHERE branch = ? AND queue = ?
+        """,
+        (
+            encode_called(q["called"]),
+            int(q["serving"]),
+            q["max"],
+            time.time(),
+            normalize_branch(branch),
+            queue,
+        )
+    )
 
 
 def create_user(username, password, branch, role="branch_admin", active=True):
@@ -344,24 +408,39 @@ def save_announcement(branch, queue, message):
         return None
 
     branch = normalize_branch(branch)
-    get_branch_state(branch)
-    branch_latest_announcement_ids[branch] += 1
+    timestamp = time.time()
 
-    event = {
-        "id": branch_latest_announcement_ids[branch],
+    with get_db() as db:
+        cursor = db.execute(
+            """
+            INSERT INTO announcements (branch, queue, message, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (branch, queue, message, timestamp)
+        )
+        event_id = cursor.lastrowid
+        old_rows = db.execute(
+            """
+            SELECT id FROM announcements
+            WHERE branch = ?
+            ORDER BY id DESC
+            LIMIT 1 OFFSET 300
+            """,
+            (branch,)
+        ).fetchone()
+        if old_rows:
+            db.execute(
+                "DELETE FROM announcements WHERE branch = ? AND id <= ?",
+                (branch, old_rows["id"])
+            )
+
+    return {
+        "id": event_id,
         "message": message,
         "queue": queue,
         "branch": branch,
-        "timestamp": time.time()
+        "timestamp": timestamp,
     }
-
-    announcement_events = branch_announcements[branch]
-    announcement_events.append(event)
-
-    if len(announcement_events) > 300:
-        del announcement_events[:150]
-
-    return event
 
 
 @app.route("/")
@@ -500,13 +579,34 @@ def get_announcements():
     branch = public_branch()
 
     with lock:
-        announcement_events = branch_announcements.get(branch, [])
-        latest_announcement_id = branch_latest_announcement_ids.get(branch, 0)
-        events = [event for event in announcement_events if event["id"] > since]
-        events.sort(key=lambda event: event["id"])
+        with get_db() as db:
+            latest_row = db.execute(
+                "SELECT COALESCE(MAX(id), 0) AS latest_id FROM announcements WHERE branch = ?",
+                (branch,)
+            ).fetchone()
+            rows = db.execute(
+                """
+                SELECT id, message, queue, branch, created_at
+                FROM announcements
+                WHERE branch = ? AND id > ?
+                ORDER BY id
+                """,
+                (branch, since)
+            ).fetchall()
+
+        events = [
+            {
+                "id": row["id"],
+                "message": row["message"],
+                "queue": row["queue"],
+                "branch": row["branch"],
+                "timestamp": row["created_at"],
+            }
+            for row in rows
+        ]
 
         return jsonify({
-            "latest_id": latest_announcement_id,
+            "latest_id": latest_row["latest_id"],
             "events": events
         })
 
@@ -522,40 +622,51 @@ def next_queue(queue):
 
     branch = active_branch()
     with lock:
+        with get_db() as db:
+            ensure_branch_state(db, branch)
+            row = db.execute(
+                """
+                SELECT called, serving, max_value
+                FROM queue_state
+                WHERE branch = ? AND queue = ?
+                """,
+                (branch, queue)
+            ).fetchone()
+            q = row_to_queue_state(row)
+
+            called = q["called"]
+            max_slot = q["max"]
+
+            if called == "Cut Off":
+                record_audit("queue_next_ignored_cutoff", branch=branch, details={"queue": queue})
+                return jsonify({"state": get_branch_state(branch), "event": None})
+
+            if called == 0 and q["serving"] == 0:
+                q["called"] = 1
+                announcement = make_announcement(queue, "called", called_number=1)
+
+            elif max_slot is not None and called >= max_slot:
+                q["serving"] = called
+                q["called"] = "Cut Off"
+                announcement = make_announcement(queue, "serving_cutoff", serving_number=called)
+
+            else:
+                new_serving = called
+                new_called = called + 1
+
+                q["serving"] = new_serving
+                q["called"] = new_called
+
+                announcement = make_announcement(
+                    queue,
+                    "serving_called",
+                    serving_number=new_serving,
+                    called_number=new_called
+                )
+
+            set_queue_state(db, branch, queue, q)
+
         queue_state = get_branch_state(branch)
-        q = queue_state[queue]
-
-        called = q["called"]
-        serving = q["serving"]
-        max_slot = q["max"]
-
-        if called == "Cut Off":
-            record_audit("queue_next_ignored_cutoff", branch=branch, details={"queue": queue})
-            return jsonify({"state": queue_state, "event": None})
-
-        if called == 0 and serving == 0:
-            q["called"] = 1
-            announcement = make_announcement(queue, "called", called_number=1)
-
-        elif max_slot is not None and called >= max_slot:
-            q["serving"] = called
-            q["called"] = "Cut Off"
-            announcement = make_announcement(queue, "serving_cutoff", serving_number=called)
-
-        else:
-            new_serving = called
-            new_called = called + 1
-
-            q["serving"] = new_serving
-            q["called"] = new_called
-
-            announcement = make_announcement(
-                queue,
-                "serving_called",
-                serving_number=new_serving,
-                called_number=new_called
-            )
-
         event = save_announcement(branch, queue, announcement)
         record_audit(
             "queue_next",
@@ -582,13 +693,14 @@ def reset_queue(queue):
 
     branch = active_branch()
     with lock:
-        queue_state = get_branch_state(branch)
-        queue_state[queue]["called"] = 0
-        queue_state[queue]["serving"] = 0
-        queue_state[queue]["max"] = None
+        with get_db() as db:
+            ensure_branch_state(db, branch)
+            q = {"called": 0, "serving": 0, "max": None}
+            set_queue_state(db, branch, queue, q)
+
         record_audit("queue_reset", branch=branch, details={"queue": queue})
 
-        return jsonify({"state": queue_state})
+        return jsonify({"state": get_branch_state(branch)})
 
 
 @app.route("/api/max/<queue>", methods=["POST"])
@@ -605,20 +717,31 @@ def update_max(queue):
     raw_value = str(data.get("max", "")).strip()
 
     with lock:
-        queue_state = get_branch_state(branch)
-        q = queue_state[queue]
+        with get_db() as db:
+            ensure_branch_state(db, branch)
+            row = db.execute(
+                """
+                SELECT called, serving, max_value
+                FROM queue_state
+                WHERE branch = ? AND queue = ?
+                """,
+                (branch, queue)
+            ).fetchone()
+            q = row_to_queue_state(row)
 
-        if raw_value == "":
-            q["max"] = None
-        else:
-            try:
-                max_value = int(raw_value)
-                q["max"] = max_value if max_value > 0 else None
-            except ValueError:
+            if raw_value == "":
                 q["max"] = None
+            else:
+                try:
+                    max_value = int(raw_value)
+                    q["max"] = max_value if max_value > 0 else None
+                except ValueError:
+                    q["max"] = None
 
-        if q["called"] == "Cut Off" and q["max"] is not None and q["max"] > q["serving"]:
-            q["called"] = q["serving"] + 1
+            if q["called"] == "Cut Off" and q["max"] is not None and q["max"] > q["serving"]:
+                q["called"] = q["serving"] + 1
+
+            set_queue_state(db, branch, queue, q)
 
         record_audit(
             "queue_set_max",
@@ -626,7 +749,7 @@ def update_max(queue):
             details={"queue": queue, "max": q["max"]}
         )
 
-        return jsonify({"state": queue_state})
+        return jsonify({"state": get_branch_state(branch)})
 
 
 if __name__ == "__main__":
