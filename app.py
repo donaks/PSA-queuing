@@ -275,6 +275,7 @@ def reset_queue(queue):
     with lock:
         queue_state[queue]["called"] = 0
         queue_state[queue]["serving"] = 0
+        queue_state[queue]["max"] = None
 
         return jsonify({"state": queue_state})
 
