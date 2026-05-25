@@ -93,7 +93,10 @@
       const q = (await response.json())[queue] || {};
       document.getElementById("serving").textContent = formatValue(q.serving);
       document.getElementById("called").textContent = formatValue(q.called);
-      document.getElementById("max").value = q.max || "";
+      const maxInput = document.getElementById("max");
+      if (document.activeElement !== maxInput) {
+        maxInput.value = q.max || "";
+      }
       document.getElementById("queueCard").classList.toggle("cutoff", isCutOff(q.called));
       document.getElementById("queueBadge").textContent = isCutOff(q.called) ? "Cut off" : queue;
       document.getElementById("lastUpdated").textContent = `Updated ${new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"})}`;
