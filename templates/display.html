@@ -34,7 +34,7 @@
       Object.entries(queueLabels).forEach(([queue, labels]) => {
         const q = state[queue] || {};
         const card = document.createElement("article");
-        card.className = "card display-card";
+        card.className = `card display-card ${queue}`;
         card.innerHTML = `
           <div>
             <h2>${labels[0]}</h2>
