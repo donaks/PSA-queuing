@@ -17,16 +17,10 @@
       <div class="toolbar">
         <div class="status-row">
           <span class="status-pill"><span class="status-dot"></span> Window {{ window_id }} controller</span>
-          <span class="status-pill" id="tokenStatus">Access code needed</span>
+          <span class="status-pill">Branch: {{ branch }}</span>
+          <span class="status-pill">User: {{ username }}</span>
           <span class="status-pill" id="lastUpdated">Updating...</span>
         </div>
-      </div>
-
-      <div class="token-panel">
-        <span class="label">Access code</span>
-        <input class="token-input" id="tokenInput" type="password" placeholder="Enter access code" autocomplete="off">
-        <button class="secondary" id="saveToken" type="button">Unlock</button>
-        <button class="secondary" id="clearToken" type="button">Clear</button>
       </div>
 
       <article class="card queue-card {% if config.type == 'PRIORITY' %}priority{% else %}regular{% endif %}" id="queueCard">
@@ -62,23 +56,10 @@
 
   <script>
     const queue = "{{ config.queue }}";
-    const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
-    if (tokenFromUrl) {
-      localStorage.setItem("queue_admin_token", tokenFromUrl);
-      history.replaceState({}, "", window.location.pathname);
-    }
-
-    function updateTokenStatus() {
-      const hasToken = Boolean(localStorage.getItem("queue_admin_token"));
-      document.getElementById("tokenStatus").textContent = hasToken ? "Controller unlocked" : "Access code needed";
-      document.getElementById("tokenInput").value = "";
-    }
-
-    updateTokenStatus();
+    const branch = "{{ branch }}";
 
     function adminHeaders() {
-      const token = localStorage.getItem("queue_admin_token") || "";
-      return token ? {"X-Admin-Token": token} : {};
+      return {};
     }
 
     function formatValue(value) {
@@ -97,8 +78,9 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error("Access denied. Enter the staff access code, then try again.");
+        if (response.status === 401) {
+          window.location.href = `/login?next=/window/{{ window_id }}`;
+          return;
         }
         throw new Error(payload.error || "Request failed");
       }
@@ -106,7 +88,7 @@
     }
 
     async function refresh() {
-      const response = await fetch("/api/state", {cache: "no-store"});
+      const response = await fetch(`/api/state?branch=${encodeURIComponent(branch)}`, {cache: "no-store"});
       const q = (await response.json())[queue] || {};
       document.getElementById("serving").textContent = formatValue(q.serving);
       document.getElementById("called").textContent = formatValue(q.called);
@@ -136,22 +118,6 @@
     document.getElementById("next").addEventListener("click", () => run("next"));
     document.getElementById("reset").addEventListener("click", () => run("reset"));
     document.getElementById("setMax").addEventListener("click", () => run("max"));
-    document.getElementById("saveToken").addEventListener("click", () => {
-      const token = document.getElementById("tokenInput").value.trim();
-      const notice = document.getElementById("notice");
-      if (!token) {
-        notice.textContent = "Enter the staff access code first.";
-        return;
-      }
-      localStorage.setItem("queue_admin_token", token);
-      updateTokenStatus();
-      notice.textContent = "Controller unlocked. You can now use this window controller.";
-    });
-    document.getElementById("clearToken").addEventListener("click", () => {
-      localStorage.removeItem("queue_admin_token");
-      updateTokenStatus();
-      document.getElementById("notice").textContent = "Access code cleared.";
-    });
 
     refresh();
     setInterval(refresh, 2500);

@@ -7,12 +7,17 @@
         <h1>PSA Queue</h1>
         <p class="muted">Queue controller and public display.</p>
       </div>
+      {% if user %}
+        <a class="link-button" href="/logout">Logout</a>
+      {% else %}
+        <a class="link-button primary" href="/login">Staff login</a>
+      {% endif %}
     </div>
 
     <section class="grid">
       <article class="card">
         <h2>Controller</h2>
-        <p class="muted">Manage all queue counters from one screen.</p>
+        <p class="muted">Staff login opens the controller for the assigned branch.</p>
         <div class="links">
           <a class="link-button" href="/controller">Open controller</a>
         </div>

@@ -5,9 +5,12 @@ Flask app for a PSA-style queue display.
 Pages:
 
 - `/` - landing page
+- `/login` - staff login
+- `/logout` - staff logout
 - `/controller` - all-queue controller
 - `/window/1` to `/window/4` - single-window controllers
 - `/display` - public queue display
+- `/branch/<branch>/display` - public display for a specific branch
 
 Public API:
 
@@ -22,7 +25,7 @@ Protected API:
 - `POST /api/reset/<queue>`
 - `POST /api/max/<queue>`
 
-Protected API requests are allowed from private/LAN IP addresses. For internet deployment, set `QUEUE_ADMIN_TOKEN`. Treat this value as the staff access code for the controller page. Operators enter it once in the **Access code** field, or open the controller once with `?token=YOUR_TOKEN`.
+Staff log in once at `/login`. Each login account belongs to one branch, so a branch admin can control only that branch's queues. Public display pages do not require login.
 
 ## Local Development
 
@@ -64,9 +67,17 @@ Set strong values in `.env`:
 
 ```env
 FLASK_SECRET_KEY=use-a-long-random-secret
-QUEUE_ADMIN_TOKEN=use-a-long-random-controller-token
+DEFAULT_BRANCH=main
+QUEUE_ADMIN_USERS=main:main_admin:change-this-password;branch2:branch2_admin:change-this-too
+QUEUE_ADMIN_TOKEN=
 TRUST_PROXY=true
 GUNICORN_BIND=127.0.0.1:8000
+```
+
+`QUEUE_ADMIN_USERS` format:
+
+```text
+branch:username:password;another-branch:another-user:another-password
 ```
 
 Install the service:
@@ -93,20 +104,25 @@ After DNS points to the VPS, add HTTPS with Certbot or Hostinger's preferred SSL
 Controller URL:
 
 ```text
-https://your-domain.com/controller?token=YOUR_QUEUE_ADMIN_TOKEN
+https://your-domain.com/login
 ```
 
-For regular staff, share this as:
+For regular staff:
 
-1. Open `https://your-domain.com/controller`
-2. Enter the staff access code
-3. Click **Unlock**
-4. Use **Next**, **Reset**, and **Set max**
+1. Open `https://your-domain.com/login`
+2. Enter branch username and password
+3. Use **Next**, **Reset**, and **Set max**
 
 Display URL:
 
 ```text
 https://your-domain.com/display
+```
+
+Branch display URL:
+
+```text
+https://your-domain.com/branch/branch2/display
 ```
 
 ## Docker

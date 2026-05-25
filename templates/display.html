@@ -5,7 +5,7 @@
     <div class="topbar">
       <div>
         <h1>Now Serving</h1>
-        <p class="muted" id="announcement">Waiting for queue updates.</p>
+        <p class="muted"><span id="announcement">Waiting for queue updates.</span></p>
       </div>
     </div>
 
@@ -19,6 +19,7 @@
       "iss-pri": ["Issuance", "Priority"],
       "iss-reg": ["Issuance", "Regular"]
     };
+    const branch = "{{ branch }}";
 
     let latestAnnouncementId = 0;
 
@@ -52,12 +53,12 @@
     }
 
     async function refreshState() {
-      const response = await fetch("/api/state", {cache: "no-store"});
+      const response = await fetch(`/api/state?branch=${encodeURIComponent(branch)}`, {cache: "no-store"});
       render(await response.json());
     }
 
     async function refreshAnnouncements() {
-      const response = await fetch(`/api/announcements?since=${latestAnnouncementId}`, {cache: "no-store"});
+      const response = await fetch(`/api/announcements?branch=${encodeURIComponent(branch)}&since=${latestAnnouncementId}`, {cache: "no-store"});
       const payload = await response.json();
       latestAnnouncementId = payload.latest_id || latestAnnouncementId;
       if (payload.events && payload.events.length) {

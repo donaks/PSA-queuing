@@ -398,6 +398,45 @@
       border-radius: 8px;
     }
 
+    .auth-shell {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .auth-card {
+      width: min(420px, 100%);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .form-grid input {
+      min-height: 46px;
+    }
+
+    .form-grid button {
+      min-height: 46px;
+    }
+
+    .error {
+      margin-top: 12px;
+      color: #9b1c1c;
+      background: var(--red-soft);
+      border: 1px solid #ffc9c9;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
     @media (max-width: 720px) {
       .topbar {
         align-items: flex-start;

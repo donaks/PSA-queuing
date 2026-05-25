@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Staff Login{% endblock %}
+{% block body %}
+  <main class="auth-shell">
+    <section class="auth-card">
+      <h1>Staff Login</h1>
+      <p class="muted">Sign in once to unlock the controller windows for your branch.</p>
+
+      {% if not has_accounts %}
+        <p class="error">No staff accounts are configured yet. Ask the system admin to add branch login accounts.</p>
+      {% endif %}
+
+      {% if error %}
+        <p class="error">{{ error }}</p>
+      {% endif %}
+
+      <form class="form-grid" method="post" action="/login">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <label>
+          <span class="label">Username</span>
+          <input name="username" autocomplete="username" required>
+        </label>
+        <label>
+          <span class="label">Password</span>
+          <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Login</button>
+        <a class="link-button" href="/display">Open public display</a>
+      </form>
+    </section>
+  </main>
+{% endblock %}
