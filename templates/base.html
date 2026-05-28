@@ -198,17 +198,25 @@
       display: grid;
       grid-template-rows: auto 1fr;
       gap: 14px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0 18%, transparent 18% 100%),
+        linear-gradient(155deg, transparent 0 68%, rgba(201, 42, 42, 0.18) 68% 72%, rgba(255, 255, 255, 0.18) 72% 76%, rgba(22, 93, 186, 0.2) 76% 100%),
+        #102f5f;
+      color: #ffffff;
     }
 
     .display-shell .topbar {
       margin-bottom: 0;
+      padding: 4px 4px 0;
     }
 
     .display-shell h1 {
       font-size: clamp(2.4rem, 4vw, 4.8rem);
+      color: #ffffff;
     }
 
     .display-shell .muted {
+      color: rgba(255, 255, 255, 0.82);
       font-size: clamp(1rem, 1.6vw, 1.8rem);
     }
 
@@ -229,11 +237,13 @@
     }
 
     .display-shell .display-card {
+      background: rgba(255, 255, 255, 0.96);
       min-height: 0;
       height: 100%;
       padding: clamp(18px, 2vw, 34px);
       gap: clamp(14px, 2vh, 30px);
       border-top-width: 16px;
+      box-shadow: 0 18px 38px rgba(3, 13, 32, 0.24);
     }
 
     .display-shell .display-card h2 {
